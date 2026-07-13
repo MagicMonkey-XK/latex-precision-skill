@@ -44,12 +44,23 @@
 
 ### 代理配置
 
-附带 [latex-writer 代理](.claude/agents/latex-writer.md) 配置文件，可用于隔离的 LaTeX 文档处理。其规范包括：
-- 逐行手动编辑（禁止对 `.tex` 文件使用批处理脚本）
-- 编辑前自动备份
-- 通过 Context7 查询宏包文档
-- Tabularray 键值顺序规则
-- 中文 LaTeX 最佳实践
+附带 [latex-writer 代理](.claude/agents/latex-writer.md) 配置文件，专门用于 LaTeX 文档处理。这是一个**独立的子代理角色配置**，规定了 Claude 如何操作 `.tex` 文件，与技能文件（规定 LaTeX 知识）有明确分工。
+
+**与技能文件的区别：** 技能文件（`SKILL.md` + 11 个主题文件）是知识库，告诉 Claude LaTeX 的语法和最佳实践。代理是行为规范，告诉 Claude 如何管理 `.tex` 文档。
+
+**代理强制规则：**
+
+| 规则 | 说明 |
+|------|------|
+| 逐行手动编辑 | 禁止用 Python/sed/awk 等批处理脚本修改 `.tex` 文件，所有改动必须通过 Read/Write/Edit 逐行操作 |
+| 编辑前备份 | 修改前必须执行 `cp file.tex file.tex.bak` |
+| Context7 集成 | 查宏包文档时走 MCP，不靠记忆 |
+| 默认只读审阅 | 默认只读模式，仅当用户明确要求时才进入编辑模式 |
+| Tabularray 键值顺序 | `hlines`/`vlines` 必须在 `hline{1,Z}`/`vline{1,Z}` 之前，否则被覆盖 |
+| 中文 LaTeX 规范 | 固定使用 XeLaTeX 引擎、ctex 文档类、中文字体命令、`\setstretch` 行距 |
+| 源代码格式 | 每行不超过 100 字符、每句一行便于 diff |
+
+> **建议：** latex-writer 代理已集成 [Context7 MCP](https://context7.com)，用于验证 LaTeX 语法、查找正确宏包和理解最佳实践。确保回答基于当前文档而非训练数据。使用时代理会自动解析宏包名称并查询文档——只需在 Claude Code 中配置好 Context7 MCP 服务即可，无需额外手动设置。
 
 ## 环境要求
 
@@ -65,13 +76,25 @@
 
 ### 安装技能
 
-```bash
-# 克隆到项目目录（仅当前项目可用）
-git clone https://github.com/MagicMonkey-XK/latex-precision-skill.git .claude/skills/latex
+### 安装技能
 
-# 或安装到全局目录（所有项目可用）
-git clone https://github.com/MagicMonkey-XK/latex-precision-skill.git ~/.claude/skills/latex
+仓库根目录已包含 `.claude/`，因此**不要将整个仓库克隆到 `.claude/skills/` 下**——那会产生双重嵌套。请使用以下方式之一：
+
+**全局安装（所有项目可用）：**
+```bash
+# 克隆到任意位置
+git clone https://github.com/MagicMonkey-XK/latex-precision-skill.git
+# 将技能目录链接到 ~/.claude/skills/
+ln -s "$(pwd)/latex-precision-skill/.claude/skills/latex-precision-skill" ~/.claude/skills/latex-precision-skill
 ```
+
+**项目级安装：**
+```bash
+# 仅复制技能目录到项目
+cp -r latex-precision-skill/.claude/skills/latex-precision-skill your-project/.claude/skills/latex-precision-skill
+```
+
+验证入口文件存在：`.claude/skills/latex-precision-skill/SKILL.md`
 
 ### 验证 LaTeX 环境
 

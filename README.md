@@ -44,12 +44,23 @@ This skill pack turns Claude Code into a LaTeX typesetting assistant. It provide
 
 ### Agent configuration
 
-An optional [latex-writer agent](.claude/agents/latex-writer.md) is included for isolated LaTeX document work. It enforces:
-- Manual line-by-line editing (no batch scripts on `.tex` files)
-- Backup-before-edit safety
-- Context7 integration for package documentation lookup
-- Tabularray key ordering rules
-- Chinese LaTeX best practices
+An optional [latex-writer agent](.claude/agents/latex-writer.md) is included for LaTeX document work. This is a **dedicated sub-agent profile** that defines how Claude operates on `.tex` files, as opposed to the skill files which define what LaTeX knowledge to apply.
+
+**How it differs from the skill:** The skill files (`SKILL.md` + 11 topic files) are a knowledge base — they tell Claude the syntax and best practices of LaTeX. The agent is a behavior specification — it tells Claude how to handle `.tex` documents.
+
+**Core rules enforced by the agent:**
+
+| Rule | Detail |
+|------|--------|
+| Line-by-line editing | No Python/sed/awk batch processing on `.tex` files — every change must be manual via Read/Write/Edit |
+| Backup before edit | Always `cp file.tex file.tex.bak` before modification |
+| Context7 integration | Uses MCP to look up package documentation rather than relying on memory |
+| Default review mode | Read-only by default; enters edit mode only when explicitly asked |
+| Tabularray key order | `hlines`/`vlines` must precede `hline{1,Z}`/`vline{1,Z}` to avoid override |
+| Chinese specifics | Fixed XeLaTeX engine, `ctex` document classes, Chinese font commands, `\setstretch` for line spacing |
+| Source formatting | Keep lines under 100 chars, one sentence per line for better diffs |
+
+> **Recommendation:** The latex-writer agent is configured to use Context7 MCP for verifying LaTeX syntax, finding the correct package, and understanding best practices. This ensures answers are backed by current documentation rather than training data. The agent will automatically resolve package names and query documentation — no manual setup needed beyond having the Context7 MCP server installed in Claude Code.
 
 ## Prerequisites
 
@@ -65,11 +76,23 @@ For Chinese typesetting, a full or medium TeX Live scheme ensures `ctex`, `fonts
 
 ### Install the skill
 
+The repository root already contains `.claude/`, so **do not clone the entire repo into `.claude/skills/`** — that creates a double-nested `.claude/` directory. Instead, use one of these methods:
+
+**Global installation (all projects):**
 ```bash
-git clone https://github.com/MagicMonkey-XK/latex-precision-skill.git /path/to/your/project/.claude/skills/latex
+# Clone anywhere
+git clone https://github.com/MagicMonkey-XK/latex-precision-skill.git
+# Symlink the skill directory into ~/.claude/skills/
+ln -s "$(pwd)/latex-precision-skill/.claude/skills/latex-precision-skill" ~/.claude/skills/latex-precision-skill
 ```
 
-Or place it under `~/.claude/skills/latex` for cross-project availability.
+**Project-level installation:**
+```bash
+# Copy only the skill directory into your project
+cp -r latex-precision-skill/.claude/skills/latex-precision-skill your-project/.claude/skills/latex-precision-skill
+```
+
+Verify the entry point exists at `.claude/skills/latex-precision-skill/SKILL.md`.
 
 ### Verify your LaTeX environment
 
